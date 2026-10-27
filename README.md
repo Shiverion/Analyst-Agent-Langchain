@@ -14,6 +14,40 @@ pinned: false
 
 This is a data analysis agent that can answer questions, perform calculations, and generate visualizations from a CSV file you provide. This demo uses LangChain and OpenAI's GPT-3.5-Turbo model to power the agent's reasoning capabilities.
 
+## System Design
+
+### Requirements
+
+- Accept a CSV and answer a user question with calculations or a plot.
+- Return generated text and an optional local plot image through Gradio.
+
+### Pipeline
+
+```text
+Gradio CSV upload → pandas DataFrame → LangChain pandas dataframe agent
+                  → ChatOpenAI gpt-3.5-turbo → text / temp_analysis_plot.png
+```
+
+The agent is configured with `allow_dangerous_code=True`; generated Python executes in the application process. The code does not define an isolated execution sandbox.
+
+### Scale and Reliability
+
+- Each request loads the CSV and constructs a new dataframe agent.
+- The API key is read from the server environment; no user/session database is present.
+
+### Trade-offs
+
+| Decision | Benefit | Cost |
+| --- | --- | --- |
+| Use the pandas dataframe agent | Natural-language access to familiar dataframe operations | Generated code has broad process access unless the host isolates it |
+| Reuse one temporary plot filename | Simple Gradio image output | Concurrent requests can overwrite each other's image |
+
+### What to Revisit
+
+- Run generated analysis in a restricted worker or container.
+- Use per-request output directories and clean them after delivery.
+- Add file-size, row-count, and execution-time bounds.
+
 ## 🚀 How to Use the Live Demo
 
 1.  **Upload a CSV File:** Use the file uploader to select a `.csv` file from your computer.
